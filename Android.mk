@@ -2,7 +2,6 @@ LOCAL_PATH := $(my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(call all-java-files-under, library/src)
-LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/library/res
 LOCAL_MANIFEST_FILE := library/AndroidManifest.xml
 
 LOCAL_STATIC_JAVA_LIBRARIES := volley

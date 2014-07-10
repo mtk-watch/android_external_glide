@@ -7,12 +7,14 @@ import android.os.Looper;
 import android.os.SystemClock;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.gifdecoder.GifDecoder;
+import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.ResourceDecoder;
 import com.bumptech.glide.load.ResourceEncoder;
 import com.bumptech.glide.load.SkipCache;
 import com.bumptech.glide.load.Transformation;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.engine.cache.MemorySizeCalculator;
+import com.bumptech.glide.load.model.NullEncoder;
 import com.bumptech.glide.load.resource.NullDecoder;
 import com.bumptech.glide.load.resource.bitmap.BitmapEncoder;
 import com.bumptech.glide.load.resource.bitmap.StreamBitmapDecoder;
@@ -28,6 +30,7 @@ class GifFrameManager {
     private final GifFrameModelLoader frameLoader;
     private final GifFrameResourceDecoder frameResourceDecoder;
     private final ResourceDecoder<InputStream, Bitmap> cacheDecoder;
+    private final Encoder<GifDecoder> sourceEncoder;
     private final GifDecoder decoder;
     private final Handler mainHandler;
     private final ResourceEncoder<Bitmap> encoder;
@@ -61,6 +64,7 @@ class GifFrameManager {
         calculator = new MemorySizeCalculator(context);
         frameLoader = new GifFrameModelLoader();
         frameResourceDecoder = new GifFrameResourceDecoder(bitmapPool);
+        sourceEncoder = NullEncoder.get();
 
         if (!decoder.isTransparent()) {
             // For non transparent gifs, we can beat the performance of our gif decoder for each frame by decoding jpegs
@@ -104,6 +108,7 @@ class GifFrameManager {
                 .cacheDecoder(cacheDecoder)
                 .transform(transformation)
                 .encoder(encoder)
+                .sourceEncoder(sourceEncoder)
                 .skipMemoryCache(skipCache)
                 .into(next);
     }

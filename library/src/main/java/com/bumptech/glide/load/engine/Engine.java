@@ -4,6 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
 import android.util.Log;
+
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.Key;
@@ -104,6 +105,9 @@ public class Engine implements EngineJobListener, MemoryCache.ResourceRemovedLis
         final String id = fetcher.getId();
         EngineKey key = keyFactory.buildKey(id, width, height, cacheDecoder, decoder, transformation, encoder,
                 transcoder, sourceEncoder);
+        if (Log.isLoggable(TAG, Log.VERBOSE)) {
+            Log.v(TAG, "loading: " + key);
+        }
 
         Resource cached = cache.remove(key);
         if (cached != null) {
@@ -177,10 +181,19 @@ public class Engine implements EngineJobListener, MemoryCache.ResourceRemovedLis
 
     @Override
     public void onResourceReleased(Key cacheKey, Resource resource) {
+        if (Log.isLoggable(TAG, Log.VERBOSE)) {
+            Log.v(TAG, "released: " + cacheKey);
+        }
         activeResources.remove(cacheKey);
         if (resource.isCacheable()) {
+            if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                Log.v(TAG, "recaching: " + cacheKey);
+            }
             cache.put(cacheKey, resource);
         } else {
+            if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                Log.v(TAG, "recycling: " + cacheKey);
+            }
             resource.recycle();
         }
     }

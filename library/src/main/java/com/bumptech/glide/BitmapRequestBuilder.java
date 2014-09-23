@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.ParcelFileDescriptor;
 import android.view.animation.Animation;
+
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.ResourceDecoder;
@@ -39,7 +40,7 @@ public class BitmapRequestBuilder<ModelType, TranscodeType> extends GenericReque
         Bitmap, TranscodeType> {
     private final BitmapPool bitmapPool;
     private Downsampler downsampler = Downsampler.AT_LEAST;
-    private DecodeFormat decodeFormat = DecodeFormat.PREFER_RGB_565;
+    private DecodeFormat decodeFormat = DecodeFormat.ALWAYS_ARGB_8888;
     private ResourceDecoder<InputStream, Bitmap> imageDecoder;
     private ResourceDecoder<ParcelFileDescriptor, Bitmap> videoDecoder;
     private Glide glide;
@@ -147,7 +148,7 @@ public class BitmapRequestBuilder<ModelType, TranscodeType> extends GenericReque
 
     /**
      * Sets the preferred format for {@link Bitmap}s decoded in this request. Defaults to
-     * {@link DecodeFormat#PREFER_RGB_565}. This replaces any previous calls to {@link #imageDecoder(ResourceDecoder)},
+     * {@link DecodeFormat#ALWAYS_ARGB_8888}. This replaces any previous calls to {@link #imageDecoder(ResourceDecoder)},
      * {@link #videoDecoder(ResourceDecoder)} and {@link #decoder(ResourceDecoder)} with default decoders with the
      * appropriate options set.
      *

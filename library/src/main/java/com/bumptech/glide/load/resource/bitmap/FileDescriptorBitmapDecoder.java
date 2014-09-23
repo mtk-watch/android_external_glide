@@ -2,10 +2,11 @@ package com.bumptech.glide.load.resource.bitmap;
 
 import android.graphics.Bitmap;
 import android.os.ParcelFileDescriptor;
-import com.bumptech.glide.load.engine.Resource;
-import com.bumptech.glide.load.ResourceDecoder;
-import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
+
 import com.bumptech.glide.load.DecodeFormat;
+import com.bumptech.glide.load.ResourceDecoder;
+import com.bumptech.glide.load.engine.Resource;
+import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 
 import java.io.IOException;
 
@@ -15,7 +16,7 @@ public class FileDescriptorBitmapDecoder implements ResourceDecoder<ParcelFileDe
     private DecodeFormat decodeFormat;
 
     public FileDescriptorBitmapDecoder(BitmapPool bitmapPool) {
-        this(new VideoBitmapDecoder(), bitmapPool, DecodeFormat.PREFER_RGB_565);
+        this(new VideoBitmapDecoder(), bitmapPool, DecodeFormat.ALWAYS_ARGB_8888);
     }
 
     public FileDescriptorBitmapDecoder(VideoBitmapDecoder bitmapDecoder, BitmapPool bitmapPool,

@@ -23,7 +23,7 @@ public class StreamBitmapDecoder implements ResourceDecoder<InputStream, Bitmap>
     }
 
     public StreamBitmapDecoder(BitmapPool bitmapPool) {
-        this(Downsampler.AT_LEAST, bitmapPool, DecodeFormat.PREFER_RGB_565);
+        this(Downsampler.AT_LEAST, bitmapPool, DecodeFormat.ALWAYS_ARGB_8888);
     }
 
     public StreamBitmapDecoder(Downsampler downsampler, BitmapPool bitmapPool, DecodeFormat decodeFormat) {

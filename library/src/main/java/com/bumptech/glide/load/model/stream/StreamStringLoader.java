@@ -11,11 +11,14 @@ import com.bumptech.glide.load.model.StringLoader;
 import java.io.InputStream;
 
 /**
- * A {@link ModelLoader} For translating {@link String} models, such as file paths or remote urls, into
- * {@link InputStream} resources.
+ * A {@link ModelLoader} for translating {@link String} models, such as file paths or remote urls, into
+ * {@link InputStream} data.
  */
 public class StreamStringLoader extends StringLoader<InputStream> implements StreamModelLoader<String> {
 
+    /**
+     * The default factory for {@link com.bumptech.glide.load.model.stream.StreamStringLoader}s.
+     */
     public static class Factory implements ModelLoaderFactory<String, InputStream> {
         @Override
         public ModelLoader<String, InputStream> build(Context context, GenericLoaderFactory factories) {
@@ -23,7 +26,9 @@ public class StreamStringLoader extends StringLoader<InputStream> implements Str
         }
 
         @Override
-        public void teardown() { }
+        public void teardown() {
+            // Do nothing.
+        }
     }
 
     public StreamStringLoader(Context context) {

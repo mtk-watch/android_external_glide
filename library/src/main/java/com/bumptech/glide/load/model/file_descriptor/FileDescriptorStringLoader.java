@@ -11,11 +11,14 @@ import com.bumptech.glide.load.model.StringLoader;
 
 /**
  * A {@link ModelLoader} For translating {@link String} models, such as file paths, into {@link ParcelFileDescriptor}
- * resources.
+ * data.
  */
 public class FileDescriptorStringLoader extends StringLoader<ParcelFileDescriptor>
-        implements FileDescriptorModelLoader<String>{
+        implements FileDescriptorModelLoader<String> {
 
+    /**
+     * The default factory for {@link com.bumptech.glide.load.model.file_descriptor.FileDescriptorStringLoader}s.
+     */
     public static class Factory implements ModelLoaderFactory<String, ParcelFileDescriptor> {
         @Override
         public ModelLoader<String, ParcelFileDescriptor> build(Context context, GenericLoaderFactory factories) {
@@ -24,7 +27,9 @@ public class FileDescriptorStringLoader extends StringLoader<ParcelFileDescripto
         }
 
         @Override
-        public void teardown() { }
+        public void teardown() {
+            // Do nothing.
+        }
     }
 
     public FileDescriptorStringLoader(Context context) {

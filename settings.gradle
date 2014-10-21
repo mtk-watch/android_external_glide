@@ -1,3 +1,13 @@
 include ':library'
+include ':glide'
 include ':third_party:gif_decoder'
+include ':third_party:disklrucache'
+include ':third_party:gif_encoder'
 include ':samples:flickr'
+include ':samples:giphy'
+include ':samples:svg'
+include ':integration'
+include ':integration:volley'
+include ':integration:okhttp'
+
+rootProject.name = 'glide-parent'

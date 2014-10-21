@@ -1,92 +1,88 @@
-import org.apache.tools.ant.taskdefs.Delete
-
-buildscript {
-    repositories {
-        mavenCentral()
-        // TODO: remove this when robolectric 2.4 is released.
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
-        }
-    }
-    dependencies {
-        classpath 'org.robolectric:robolectric-gradle-plugin:0.11.+'
-        classpath 'com.android.tools.build:gradle:0.11.2'
-    }
-}
-
-apply plugin: 'android-library'
+apply plugin: 'com.android.library'
 apply plugin: 'robolectric'
+apply plugin: 'maven'
+apply plugin: 'findbugs'
+apply plugin: 'pmd'
 
-repositories {
-    mavenCentral()
-    // TODO: remove this when robolectric 2.4 is released.
-    maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots"
-    }
+findbugs {
+    toolVersion = "2.0.3"
 }
 
 dependencies {
     compile project(':third_party:gif_decoder')
-
+    compile project(':third_party:gif_encoder')
+    compile project(':third_party:disklrucache')
     compile 'com.android.support:support-v4:19.1.+'
-    compile 'com.mcxiaoke.volley:library:1.0.+'
-    compile 'com.jakewharton:disklrucache:2.0.+'
 
     androidTestCompile 'org.hamcrest:hamcrest-core:1.3'
+    androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
     androidTestCompile 'junit:junit:4.11'
     androidTestCompile 'org.mockito:mockito-all:1.9.5'
-    androidTestCompile 'org.robolectric:robolectric:2.3'
-    androidTestCompile group: 'org.robolectric', name: 'robolectric', version: '2.4-SNAPSHOT', changing: true
-}
-
-ext {
-    versionMajor = 3
-    versionMinor = 2
-    versionPatch = 0
-    versionBuild = 5
-}
-
-def getVersionName() {
-    return "${versionMajor}.${versionMinor}.${versionPatch}a"
+    androidTestCompile 'org.robolectric:robolectric:2.4-SNAPSHOT'
+    // TODO: increase this to 2.0.+ when we compile against Java 7.
+    androidTestCompile 'com.squareup.okhttp:mockwebserver:1.2.+'
 }
 
 android {
     compileSdkVersion 19
-    buildToolsVersion = '19.1.0'
+    buildToolsVersion '19.1.0'
 
     defaultConfig {
+        applicationId 'com.bumptech.glide'
         minSdkVersion 10
+
         targetSdkVersion 19
-        versionCode versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
-        versionName getVersionName()
-    }
-
-    sourceSets {
-        main {
-            java.srcDirs         = ['src/main/java']
-            manifest.srcFile 'AndroidManifest.xml'
-        }
-
-        androidTest {
-            java.srcDirs = ['src/test/java']
-        }
+        versionCode = VERSION_CODE
+        versionName = VERSION_NAME
     }
 }
 
-def getJarName() {
-    return "glide-${getVersionName()}.jar"
-}
+afterEvaluate {
+    task findbugs(type: FindBugs, dependsOn: assembleDebug) {
 
-//Build a jar, from http://stackoverflow.com/a/19037807/1002054
-task clearJar(type: org.gradle.api.tasks.Delete) {
-    delete "build/libs/${getJarName()}"
-}
+        description 'Run findbugs'
+        group 'verification'
 
-task makeJar(type: Copy) {
-    from('build/intermediates/bundles/release/')
-    into('build/libs/')
-    include('classes.jar')
-    rename ('classes.jar', getJarName())
-}
+        classes = fileTree('build/intermediates/classes/debug/')
+        source = fileTree('src/main/java')
+        classpath = files(project.configurations.compile.asPath)
 
-makeJar.dependsOn(clearJar, build)
+        effort = 'max'
+
+        excludeFilter = file("findbugs-exclude.xml")
+
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
+
+    findbugsTestDebug {
+        enabled = false
+    }
+
+    check.dependsOn('findbugs')
+
+    task pmd(type: Pmd) {
+
+        description 'Run pmd'
+        group 'verification'
+
+        // If ruleSets is not empty, it seems to contain some
+        // defaults which override rules in the ruleset file...
+        ruleSets = []
+        ruleSetFiles = files('pmd-ruleset.xml')
+        source = fileTree('src/main/java')
+
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
+
+    pmdTestDebug {
+        enabled = false
+    }
+
+    check.dependsOn('pmd')
+}

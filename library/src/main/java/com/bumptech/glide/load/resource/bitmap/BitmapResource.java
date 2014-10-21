@@ -5,9 +5,12 @@ import com.bumptech.glide.load.engine.Resource;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.util.Util;
 
-public class BitmapResource extends Resource<Bitmap> {
-    private Bitmap bitmap;
-    private BitmapPool bitmapPool;
+/**
+ * A resource wrapping a {@link android.graphics.Bitmap} object.
+ */
+public class BitmapResource implements Resource<Bitmap> {
+    private final Bitmap bitmap;
+    private final BitmapPool bitmapPool;
 
     public BitmapResource(Bitmap bitmap, BitmapPool bitmapPool) {
         this.bitmap = bitmap;
@@ -21,11 +24,11 @@ public class BitmapResource extends Resource<Bitmap> {
 
     @Override
     public int getSize() {
-        return Util.getSize(bitmap);
+        return Util.getBitmapByteSize(bitmap);
     }
 
     @Override
-    public void recycleInternal() {
+    public void recycle() {
         if (!bitmapPool.put(bitmap)) {
             bitmap.recycle();
         }

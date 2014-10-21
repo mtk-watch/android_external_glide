@@ -12,10 +12,15 @@ import com.bumptech.glide.load.model.ModelLoaderFactory;
 import java.io.File;
 
 /**
- * A {@link ModelLoader} For translating {@link File} models into {@link ParcelFileDescriptor} resources.
+ * A {@link ModelLoader} For translating {@link File} models into {@link ParcelFileDescriptor} data.
  */
-public class FileDescriptorFileLoader extends FileLoader<ParcelFileDescriptor> implements FileDescriptorModelLoader<File> {
+public class FileDescriptorFileLoader extends FileLoader<ParcelFileDescriptor>
+        implements FileDescriptorModelLoader<File> {
 
+    /**
+     * The default {@link com.bumptech.glide.load.model.ModelLoaderFactory} for
+     * {@link com.bumptech.glide.load.model.file_descriptor.FileDescriptorFileLoader}s.
+     */
     public static class Factory implements ModelLoaderFactory<File, ParcelFileDescriptor> {
         @Override
         public ModelLoader<File, ParcelFileDescriptor> build(Context context, GenericLoaderFactory factories) {
@@ -25,6 +30,7 @@ public class FileDescriptorFileLoader extends FileLoader<ParcelFileDescriptor> i
 
         @Override
         public void teardown() {
+            // Do nothing.
         }
     }
 

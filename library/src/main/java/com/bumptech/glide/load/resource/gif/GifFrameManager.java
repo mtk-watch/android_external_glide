@@ -2,49 +2,43 @@ package com.bumptech.glide.load.resource.gif;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.gifdecoder.GifDecoder;
 import com.bumptech.glide.load.Encoder;
-import com.bumptech.glide.load.ResourceDecoder;
-import com.bumptech.glide.load.ResourceEncoder;
-import com.bumptech.glide.load.SkipCache;
+import com.bumptech.glide.load.Key;
 import com.bumptech.glide.load.Transformation;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
-import com.bumptech.glide.load.engine.cache.MemorySizeCalculator;
-import com.bumptech.glide.load.model.NullEncoder;
-import com.bumptech.glide.load.resource.NullDecoder;
-import com.bumptech.glide.load.resource.bitmap.BitmapEncoder;
-import com.bumptech.glide.load.resource.bitmap.StreamBitmapDecoder;
-import com.bumptech.glide.request.GlideAnimation;
+import com.bumptech.glide.load.resource.NullEncoder;
+import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 
-import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.util.UUID;
 
 class GifFrameManager {
-    // 16ms per frame = 60fps
-    static final long MIN_FRAME_DELAY = 16;
-    private final MemorySizeCalculator calculator;
+    /** 60fps is {@value #MIN_FRAME_DELAY}ms per frame. */
+    private static final long MIN_FRAME_DELAY = 1000 / 60;
     private final GifFrameModelLoader frameLoader;
     private final GifFrameResourceDecoder frameResourceDecoder;
-    private final ResourceDecoder<InputStream, Bitmap> cacheDecoder;
-    private final Encoder<GifDecoder> sourceEncoder;
     private final GifDecoder decoder;
     private final Handler mainHandler;
-    private final ResourceEncoder<Bitmap> encoder;
     private final Context context;
-
-    private Transformation<Bitmap> transformation;
+    private final Encoder<GifDecoder> sourceEncoder;
+    private final Transformation<Bitmap>[] transformation;
     private final int targetWidth;
     private final int targetHeight;
+    private final FrameSignature signature;
     private DelayTarget current;
     private DelayTarget next;
-    private int frameSize = -1;
 
     public interface FrameCallback {
-        public void onFrameRead(Bitmap frame);
+        void onFrameRead(int index);
     }
 
     public GifFrameManager(Context context, GifDecoder decoder, Transformation<Bitmap> transformation, int targetWidth,
@@ -53,81 +47,75 @@ class GifFrameManager {
                 targetWidth, targetHeight);
     }
 
+    @SuppressWarnings("unchecked")
     public GifFrameManager(Context context, BitmapPool bitmapPool, GifDecoder decoder, Handler mainHandler,
             Transformation<Bitmap> transformation, int targetWidth, int targetHeight) {
+        if (transformation == null) {
+            throw new NullPointerException("Transformation must not be null");
+        }
+
         this.context = context;
+        this.frameResourceDecoder = new GifFrameResourceDecoder(bitmapPool);
         this.decoder = decoder;
         this.mainHandler = mainHandler;
-        this.transformation = transformation;
+        this.transformation = new Transformation[] {transformation};
         this.targetWidth = targetWidth;
         this.targetHeight = targetHeight;
-        calculator = new MemorySizeCalculator(context);
-        frameLoader = new GifFrameModelLoader();
-        frameResourceDecoder = new GifFrameResourceDecoder(bitmapPool);
-        sourceEncoder = NullEncoder.get();
-
-        if (!decoder.isTransparent()) {
-            // For non transparent gifs, we can beat the performance of our gif decoder for each frame by decoding jpegs
-            // from disk.
-            cacheDecoder = new StreamBitmapDecoder(context);
-            encoder = new BitmapEncoder(Bitmap.CompressFormat.JPEG, 70);
-        } else {
-            // For transparent gifs, we would have to encode as pngs which is actually slower than our gif decoder so we
-            // avoid writing frames to the disk cache entirely.
-            cacheDecoder = NullDecoder.get();
-            encoder = SkipCache.get();
-        }
+        this.frameLoader = new GifFrameModelLoader();
+        this.sourceEncoder = NullEncoder.get();
+        this.signature = new FrameSignature();
     }
 
     Transformation<Bitmap> getTransformation() {
-        return transformation;
-    }
-
-    private int getEstimatedTotalFrameSize() {
-        if (frameSize == -1) {
-            return decoder.getDecodedFramesByteSizeSum();
-        } else {
-            return frameSize * decoder.getFrameCount();
-        }
+        return transformation[0];
     }
 
     public void getNextFrame(FrameCallback cb) {
         decoder.advance();
-        // We don't want to blow out the entire memory cache with frames of gifs, so try to set some
-        // maximum size beyond which we will always just decode one frame at a time.
-        boolean skipCache = getEstimatedTotalFrameSize() > calculator.getMemoryCacheSize() / 2;
 
-        long targetTime = SystemClock.uptimeMillis() + (Math.max(MIN_FRAME_DELAY, decoder.getNextDelay()));
+        long targetTime = SystemClock.uptimeMillis() + Math.max(MIN_FRAME_DELAY, decoder.getNextDelay());
         next = new DelayTarget(cb, targetTime);
+        next.setFrameIndex(decoder.getCurrentFrameIndex());
 
+        // Use an incrementing signature to make sure we never hit an active resource that matches one of our frames.
+        signature.increment();
         Glide.with(context)
                 .using(frameLoader, GifDecoder.class)
                 .load(decoder)
                 .as(Bitmap.class)
-                .decoder(frameResourceDecoder)
-                .cacheDecoder(cacheDecoder)
-                .transform(transformation)
-                .encoder(encoder)
+                .signature(signature)
                 .sourceEncoder(sourceEncoder)
-                .skipMemoryCache(skipCache)
+                .decoder(frameResourceDecoder)
+                .transform(transformation)
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
                 .into(next);
+    }
+
+    public Bitmap getCurrentFrame() {
+        return current != null ? current.resource : null;
     }
 
     public void clear() {
         if (current != null) {
-            Glide.clear(current);
             mainHandler.removeCallbacks(current);
+            Glide.clear(current);
+            current = null;
         }
         if (next != null) {
-            Glide.clear(next);
             mainHandler.removeCallbacks(next);
+            Glide.clear(next);
+            next = null;
         }
+
+        decoder.resetFrameIndex();
     }
 
     class DelayTarget extends SimpleTarget<Bitmap> implements Runnable {
-        private FrameCallback cb;
-        private long targetTime;
+        private final FrameCallback cb;
+        private final long targetTime;
         private Bitmap resource;
+        private int index;
 
         public DelayTarget(FrameCallback cb, long targetTime) {
             super(targetWidth, targetHeight);
@@ -135,22 +123,62 @@ class GifFrameManager {
             this.targetTime = targetTime;
         }
 
+        public void setFrameIndex(int index) {
+            this.index = index;
+        }
+
         @Override
-        public void onResourceReady(final Bitmap resource, GlideAnimation<Bitmap> glideAnimation) {
-            // Ignore allocationByteSize, we only want the minimum frame size.
-            frameSize = resource.getHeight() * resource.getRowBytes();
+        public void onResourceReady(final Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
             this.resource = resource;
             mainHandler.postAtTime(this, targetTime);
-            if (current != null) {
-                Glide.clear(current);
-            }
-            current = next;
-            next = null;
         }
 
         @Override
         public void run() {
-            cb.onFrameRead(resource);
+            cb.onFrameRead(index);
+            if (current != null) {
+                Glide.clear(current);
+            }
+            current = this;
+        }
+
+        @Override
+        public void onLoadCleared(Drawable placeholder) {
+            resource = null;
+        }
+    }
+
+    private static class FrameSignature implements Key {
+        private final UUID uuid;
+        private int id;
+
+        public FrameSignature() {
+            this.uuid = UUID.randomUUID();
+        }
+
+        public void increment() {
+            id++;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof FrameSignature) {
+                FrameSignature other = (FrameSignature) o;
+                return other.uuid.equals(uuid) && id == other.id;
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = uuid.hashCode();
+            result = 31 * result + id;
+            return result;
+        }
+
+        @Override
+        public void updateDiskCacheKey(MessageDigest messageDigest) throws UnsupportedEncodingException {
+            throw new UnsupportedOperationException("Not implemented");
         }
     }
 }

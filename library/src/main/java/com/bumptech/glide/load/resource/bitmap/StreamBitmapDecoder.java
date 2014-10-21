@@ -10,7 +10,11 @@ import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 
 import java.io.InputStream;
 
-//TODO(actually fill out this stub)
+/**
+ * An {@link com.bumptech.glide.load.ResourceDecoder} that uses an
+ * {@link com.bumptech.glide.load.resource.bitmap.Downsampler} to decode an {@link android.graphics.Bitmap} from an
+ * {@link java.io.InputStream}.
+ */
 public class StreamBitmapDecoder implements ResourceDecoder<InputStream, Bitmap> {
     private static final String ID = "StreamBitmapDecoder.com.bumptech.glide.load.resource.bitmap";
     private final Downsampler downsampler;
@@ -23,7 +27,15 @@ public class StreamBitmapDecoder implements ResourceDecoder<InputStream, Bitmap>
     }
 
     public StreamBitmapDecoder(BitmapPool bitmapPool) {
-        this(Downsampler.AT_LEAST, bitmapPool, DecodeFormat.ALWAYS_ARGB_8888);
+        this(bitmapPool, DecodeFormat.DEFAULT);
+    }
+
+    public StreamBitmapDecoder(Context context, DecodeFormat decodeFormat) {
+        this(Glide.get(context).getBitmapPool(), decodeFormat);
+    }
+
+    public StreamBitmapDecoder(BitmapPool bitmapPool, DecodeFormat decodeFormat) {
+        this(Downsampler.AT_LEAST, bitmapPool, decodeFormat);
     }
 
     public StreamBitmapDecoder(Downsampler downsampler, BitmapPool bitmapPool, DecodeFormat decodeFormat) {

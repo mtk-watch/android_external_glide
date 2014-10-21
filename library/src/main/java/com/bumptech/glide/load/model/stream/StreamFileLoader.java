@@ -12,10 +12,13 @@ import java.io.File;
 import java.io.InputStream;
 
 /**
- * A {@link ModelLoader} For translating {@link File} models for local uris into {@link InputStream} resources.
+ * A {@link ModelLoader} For translating {@link File} models for local uris into {@link InputStream} data.
  */
 public class StreamFileLoader extends FileLoader<InputStream> implements StreamModelLoader<File> {
 
+    /**
+     * The default factory for {@link com.bumptech.glide.load.model.stream.StreamFileLoader}s.
+     */
     public static class Factory implements ModelLoaderFactory<File, InputStream> {
         @Override
         public ModelLoader<File, InputStream> build(Context context, GenericLoaderFactory factories) {
@@ -23,7 +26,9 @@ public class StreamFileLoader extends FileLoader<InputStream> implements StreamM
         }
 
         @Override
-        public void teardown() { }
+        public void teardown() {
+            // Do nothing.
+        }
     }
 
     public StreamFileLoader(Context context) {

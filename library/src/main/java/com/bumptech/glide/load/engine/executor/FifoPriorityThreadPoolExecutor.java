@@ -18,7 +18,9 @@ public class FifoPriorityThreadPoolExecutor extends ThreadPoolExecutor {
     AtomicInteger ordering = new AtomicInteger();
 
     /**
-     * Constructor to build a fixed thread pool with the given pool size using {@link DefaultThreadFactory}.
+     * Constructor to build a fixed thread pool with the given pool size using
+     * {@link com.bumptech.glide.load.engine.executor.FifoPriorityThreadPoolExecutor.DefaultThreadFactory}.
+     *
      * @param poolSize The number of threads.
      */
     public FifoPriorityThreadPoolExecutor(int poolSize) {
@@ -35,11 +37,15 @@ public class FifoPriorityThreadPoolExecutor extends ThreadPoolExecutor {
         return new FifoPriorityLoadTask<T>(runnable, value, ordering.getAndIncrement());
     }
 
+    /**
+     * A {@link java.util.concurrent.ThreadFactory} that builds threads with priority
+     * {@link android.os.Process#THREAD_PRIORITY_BACKGROUND}.
+     */
     public static class DefaultThreadFactory implements ThreadFactory {
         int threadNum = 0;
         @Override
         public Thread newThread(Runnable runnable) {
-            final Thread result = new Thread(runnable, "image-manager-resize-" + threadNum) {
+            final Thread result = new Thread(runnable, "fifo-pool-thread-" + threadNum) {
                 @Override
                 public void run() {
                     android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
@@ -51,24 +57,52 @@ public class FifoPriorityThreadPoolExecutor extends ThreadPoolExecutor {
         }
     }
 
-    private static class FifoPriorityLoadTask<T> extends FutureTask<T> implements Comparable<FifoPriorityLoadTask> {
+    private static class FifoPriorityLoadTask<T> extends FutureTask<T> implements Comparable<FifoPriorityLoadTask<?>> {
         private final int priority;
         private final int order;
 
         public FifoPriorityLoadTask(Runnable runnable, T result, int order) {
             super(runnable, result);
             if (!(runnable instanceof Prioritized)) {
-                throw new IllegalArgumentException("FifoPriorityThreadPoolExecutor must be given Runnables that " +
-                        "implement Prioritized");
+                throw new IllegalArgumentException("FifoPriorityThreadPoolExecutor must be given Runnables that "
+                        + "implement Prioritized");
             }
             priority = ((Prioritized) runnable).getPriority();
             this.order = order;
         }
 
         @Override
-        public int compareTo(FifoPriorityLoadTask loadTask) {
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            FifoPriorityLoadTask that = (FifoPriorityLoadTask) o;
+
+            if (order != that.order) {
+                return false;
+            }
+            if (priority != that.priority) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = priority;
+            result = 31 * result + order;
+            return result;
+        }
+
+        @Override
+        public int compareTo(FifoPriorityLoadTask<?> loadTask) {
             int result = priority - loadTask.priority;
-            if (result == 0 && loadTask != this) {
+            if (result == 0) {
                 result = order - loadTask.order;
             }
             return result;

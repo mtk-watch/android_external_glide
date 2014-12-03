@@ -4,7 +4,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.view.animation.Animation;
 import android.widget.ImageView;
-import com.bumptech.glide.signature.EmptySignature;
+
 import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.Key;
 import com.bumptech.glide.load.MultiTransformation;
@@ -27,10 +27,12 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.ThumbnailRequestCoordinator;
 import com.bumptech.glide.request.animation.GlideAnimationFactory;
 import com.bumptech.glide.request.animation.NoAnimation;
-import com.bumptech.glide.request.animation.ViewAnimation;
+import com.bumptech.glide.request.animation.ViewAnimationFactory;
 import com.bumptech.glide.request.animation.ViewPropertyAnimation;
+import com.bumptech.glide.request.animation.ViewPropertyAnimationFactory;
 import com.bumptech.glide.request.target.PreloadTarget;
 import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.signature.EmptySignature;
 import com.bumptech.glide.util.Util;
 
 import java.io.File;
@@ -60,7 +62,7 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
     private boolean isModelSet;
     private int placeholderId;
     private int errorId;
-    private RequestListener<ModelType, TranscodeType> requestListener;
+    private RequestListener<? super ModelType, TranscodeType> requestListener;
     private Float thumbSizeMultiplier;
     private GenericRequestBuilder<?, ?, ?, TranscodeType> thumbnailRequestBuilder;
     private Float sizeMultiplier = 1f;
@@ -367,7 +369,7 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
      * @return This request builder.
      */
     public GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeType> animate(int animationId) {
-        return animate(new ViewAnimation.ViewAnimationFactory<TranscodeType>(context, animationId));
+        return animate(new ViewAnimationFactory<TranscodeType>(context, animationId));
     }
 
     /**
@@ -380,13 +382,14 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
      * @deprecated If this builder is used for multiple loads, using this method will result in multiple view's being
      * asked to start an animation using a single {@link android.view.animation.Animation} object which results in
      * views animating repeatedly. Use {@link #animate(int)} or
-     * {@link #animate(com.bumptech.glide.request.animation.ViewPropertyAnimation.Animator)}.
+     * {@link #animate(com.bumptech.glide.request.animation.ViewPropertyAnimation.Animator)}. Scheduled to be removed in
+     * Glide 4.0.
      * @param animation The animation to run
      * @return This request builder.
      */
     @Deprecated
     public GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeType> animate(Animation animation) {
-        return animate(new ViewAnimation.ViewAnimationFactory<TranscodeType>(animation));
+        return animate(new ViewAnimationFactory<TranscodeType>(animation));
     }
 
     /**
@@ -399,7 +402,7 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
      */
     public GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeType> animate(
             ViewPropertyAnimation.Animator animator) {
-        return animate(new ViewPropertyAnimation.ViewPropertyAnimationFactory<TranscodeType>(animator));
+        return animate(new ViewPropertyAnimationFactory<TranscodeType>(animator));
     }
 
     GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeType> animate(
@@ -474,7 +477,7 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
      * @return This request builder.
      */
     public GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeType> listener(
-            RequestListener<ModelType, TranscodeType> requestListener) {
+            RequestListener<? super ModelType, TranscodeType> requestListener) {
         this.requestListener = requestListener;
 
         return this;
@@ -502,8 +505,8 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
      * thumbnails, and should only be used when you both need a very specific sized image and when it is impossible or
      * impractical to return that size from {@link Target#getSize(com.bumptech.glide.request.target.SizeReadyCallback)}.
      *
-     * @param width The width to use to load the resource.
-     * @param height The height to use to load the resource.
+     * @param width The width in pixels to use to load the resource.
+     * @param height The height in pixels to use to load the resource.
      * @return This request builder.
      */
     public GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeType> override(int width, int height) {
@@ -651,10 +654,10 @@ public class GenericRequestBuilder<ModelType, DataType, ResourceType, TranscodeT
     /**
      * Returns a future that can be used to do a blocking get on a background thread.
      *
-     * @param width The desired width (note this will be overriden by {@link #override(int, int)} if
-     *              previously called.
-     * @param height The desired height (note this will be overriden by {@link #override(int, int)}}
-     *               if previously called.
+     * @param width The desired width in pixels (note this will be overriden by {@link #override(int, int)} if
+     *              previously called).
+     * @param height The desired height in pixels (note this will be overriden by {@link #override(int, int)}}
+     *               if previously called).
      *
      * @see Glide#clear(com.bumptech.glide.request.FutureTarget)
      *

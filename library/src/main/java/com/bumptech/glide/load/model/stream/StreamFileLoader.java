@@ -2,6 +2,7 @@ package com.bumptech.glide.load.model.stream;
 
 import android.content.Context;
 import android.net.Uri;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.model.FileLoader;
 import com.bumptech.glide.load.model.GenericLoaderFactory;
@@ -22,7 +23,7 @@ public class StreamFileLoader extends FileLoader<InputStream> implements StreamM
     public static class Factory implements ModelLoaderFactory<File, InputStream> {
         @Override
         public ModelLoader<File, InputStream> build(Context context, GenericLoaderFactory factories) {
-            return new StreamFileLoader(factories.buildModelLoader(Uri.class, InputStream.class, context));
+            return new StreamFileLoader(factories.buildModelLoader(Uri.class, InputStream.class));
         }
 
         @Override

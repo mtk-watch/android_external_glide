@@ -98,6 +98,11 @@ public class GifDecoder {
 
     private static final int INITIAL_FRAME_POINTER = -1;
 
+    // We can't tell if a gif has transparency to decode a partial frame on top of a previous frame, or if the final
+    // frame will actually have transparent pixels, so we must always use a format that supports transparency. We can't
+    // use ARGB_4444 because of framework issues drawing onto ARGB_4444 Bitmaps using Canvas.
+    private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.ARGB_8888;
+
     // Global File Header values and parsing flags.
     // Active color table.
     private int[] act;
@@ -123,7 +128,6 @@ public class GifDecoder {
     private BitmapProvider bitmapProvider;
     private Bitmap previousImage;
     private boolean savePrevious;
-    private Bitmap.Config config;
     private int status;
 
     /**
@@ -135,8 +139,8 @@ public class GifDecoder {
          * Returns an {@link Bitmap} with exactly the given dimensions and config, or null if no such {@link Bitmap}
          * could be obtained.
          *
-         * @param width The width of the desired {@link android.graphics.Bitmap}.
-         * @param height The height of the desired {@link android.graphics.Bitmap}.
+         * @param width The width in pixels of the desired {@link android.graphics.Bitmap}.
+         * @param height The height in pixels of the desired {@link android.graphics.Bitmap}.
          * @param config The {@link android.graphics.Bitmap.Config} of the desired {@link android.graphics.Bitmap}.
          */
         public Bitmap obtain(int width, int height, Bitmap.Config config);
@@ -162,10 +166,6 @@ public class GifDecoder {
 
     public byte[] getData() {
         return data;
-    }
-
-    public void setPreferredConfig(Bitmap.Config config) {
-        this.config = config;
     }
 
     /**
@@ -202,7 +202,7 @@ public class GifDecoder {
     }
 
     /**
-     * Gets display duration for the upcoming frame.
+     * Gets display duration for the upcoming frame in ms.
      */
     public int getNextDelay() {
         if (header.frameCount <= 0 || framePointer < 0) {
@@ -248,46 +248,59 @@ public class GifDecoder {
      *
      * @return Bitmap representation of frame.
      */
-    public Bitmap getNextFrame() {
+    public synchronized Bitmap getNextFrame() {
         if (header.frameCount <= 0 || framePointer < 0) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "unable to decode frame, frameCount=" + header.frameCount + " framePointer=" + framePointer);
+            }
             status = STATUS_FORMAT_ERROR;
         }
         if (status == STATUS_FORMAT_ERROR || status == STATUS_OPEN_ERROR) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Unable to decode frame, status=" + status);
+            }
             return null;
         }
         status = STATUS_OK;
 
-        GifFrame frame = header.frames.get(framePointer);
+        GifFrame currentFrame = header.frames.get(framePointer);
+        GifFrame previousFrame = null;
+        int previousIndex = framePointer - 1;
+        if (previousIndex >= 0) {
+            previousFrame = header.frames.get(previousIndex);
+        }
 
         // Set the appropriate color table.
-        if (frame.lct == null) {
+        if (currentFrame.lct == null) {
             act = header.gct;
         } else {
-            act = frame.lct;
-            if (header.bgIndex == frame.transIndex) {
+            act = currentFrame.lct;
+            if (header.bgIndex == currentFrame.transIndex) {
                 header.bgColor = 0;
             }
         }
 
         int save = 0;
-        if (frame.transparency) {
-            save = act[frame.transIndex];
+        if (currentFrame.transparency) {
+            save = act[currentFrame.transIndex];
             // Set transparent color if specified.
-            act[frame.transIndex] = 0;
+            act[currentFrame.transIndex] = 0;
         }
         if (act == null) {
-            Log.w(TAG, "No Valid Color Table");
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "No Valid Color Table");
+            }
             // No color table defined.
             status = STATUS_FORMAT_ERROR;
             return null;
         }
 
         // Transfer pixel data to image.
-        Bitmap result = setPixels(framePointer);
+        Bitmap result = setPixels(currentFrame, previousFrame);
 
         // Reset the transparent pixel in the color table
-        if (frame.transparency) {
-            act[frame.transIndex] = save;
+        if (currentFrame.transparency) {
+            act[currentFrame.transIndex] = save;
         }
 
         return result;
@@ -408,13 +421,8 @@ public class GifDecoder {
     /**
      * Creates new frame image from current data (and previous frames as specified by their disposition codes).
      */
-    private Bitmap setPixels(int frameIndex) {
-        GifFrame currentFrame = header.frames.get(frameIndex);
-        GifFrame previousFrame = null;
-        int previousIndex = frameIndex - 1;
-        if (previousIndex >= 0) {
-            previousFrame = header.frames.get(previousIndex);
-        }
+    private Bitmap setPixels(GifFrame currentFrame, GifFrame previousFrame) {
+
         int width = header.width;
         int height = header.height;
 
@@ -676,21 +684,10 @@ public class GifDecoder {
         return n;
     }
 
-    private Bitmap.Config getPreferredConfig() {
-        // We can't tell if a gif has transparency to decode a partial frame on top of a previous frame, or if the final
-        // frame will actually have transparent pixels, so we must always use a format that supports transparency.
-        if (config == Bitmap.Config.RGB_565 || config == Bitmap.Config.ARGB_4444) {
-            return Bitmap.Config.ARGB_4444;
-        } else {
-            return Bitmap.Config.ARGB_8888;
-        }
-    }
-
     private Bitmap getNextBitmap() {
-        Bitmap.Config targetConfig = getPreferredConfig();
-        Bitmap result = bitmapProvider.obtain(header.width, header.height, targetConfig);
+        Bitmap result = bitmapProvider.obtain(header.width, header.height, BITMAP_CONFIG);
         if (result == null) {
-            result = Bitmap.createBitmap(header.width, header.height, targetConfig);
+            result = Bitmap.createBitmap(header.width, header.height, BITMAP_CONFIG);
         }
         setAlpha(result);
         return result;

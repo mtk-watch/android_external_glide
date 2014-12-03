@@ -5,6 +5,7 @@ import android.graphics.drawable.Drawable;
 import android.os.ParcelFileDescriptor;
 import android.view.animation.Animation;
 import android.widget.ImageView;
+
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.Key;
@@ -391,7 +392,7 @@ public class BitmapRequestBuilder<ModelType, TranscodeType>
      */
     @Override
     public BitmapRequestBuilder<ModelType, TranscodeType> listener(
-            RequestListener<ModelType, TranscodeType> requestListener) {
+            RequestListener<? super ModelType, TranscodeType> requestListener) {
         super.listener(requestListener);
         return this;
     }

@@ -4,10 +4,10 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.model.ModelCache;
-import com.bumptech.glide.load.model.GlideUrl;
-import com.bumptech.glide.load.model.ModelLoader;
 import com.bumptech.glide.load.data.DataFetcher;
+import com.bumptech.glide.load.model.GlideUrl;
+import com.bumptech.glide.load.model.ModelCache;
+import com.bumptech.glide.load.model.ModelLoader;
 
 import java.io.InputStream;
 
@@ -15,7 +15,7 @@ import java.io.InputStream;
  * A base class for loading images over http/https. Can be subclassed for use with any model that can be translated
  * in to {@link java.io.InputStream} data.
  *
- * @param <T> The type of the model
+ * @param <T> The type of the model.
  */
 public abstract class BaseGlideUrlLoader<T> implements StreamModelLoader<T> {
     private final ModelLoader<GlideUrl, InputStream> concreteLoader;
@@ -64,10 +64,10 @@ public abstract class BaseGlideUrlLoader<T> implements StreamModelLoader<T> {
     /**
      * Get a valid url http:// or https:// for the given model and dimensions as a string.
      *
-     * @param model The model
-     * @param width The width of the view/target the image will be loaded into
-     * @param height The height of the view/target the image will be loaded into
-     * @return The String url
+     * @param model The model.
+     * @param width The width in pixels of the view/target the image will be loaded into.
+     * @param height The height in pixels of the view/target the image will be loaded into.
+     * @return The String url.
      */
     protected abstract String getUrl(T model, int width, int height);
 }

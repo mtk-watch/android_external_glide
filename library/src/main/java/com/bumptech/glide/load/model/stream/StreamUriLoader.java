@@ -2,6 +2,7 @@ package com.bumptech.glide.load.model.stream;
 
 import android.content.Context;
 import android.net.Uri;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.data.DataFetcher;
 import com.bumptech.glide.load.data.StreamAssetPathFetcher;
@@ -28,7 +29,7 @@ public class StreamUriLoader extends UriLoader<InputStream> implements StreamMod
 
         @Override
         public ModelLoader<Uri, InputStream> build(Context context, GenericLoaderFactory factories) {
-            return new StreamUriLoader(context, factories.buildModelLoader(GlideUrl.class, InputStream.class, context));
+            return new StreamUriLoader(context, factories.buildModelLoader(GlideUrl.class, InputStream.class));
         }
 
         @Override

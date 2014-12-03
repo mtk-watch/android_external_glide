@@ -15,12 +15,13 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.engine.Engine;
-import com.bumptech.glide.load.engine.prefill.PreFillBitmapAttribute;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
-import com.bumptech.glide.load.engine.prefill.BitmapPreFiller;
 import com.bumptech.glide.load.engine.cache.MemoryCache;
+import com.bumptech.glide.load.engine.prefill.BitmapPreFiller;
+import com.bumptech.glide.load.engine.prefill.PreFillType;
 import com.bumptech.glide.load.model.GenericLoaderFactory;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.ImageVideoWrapper;
@@ -82,7 +83,7 @@ public class Glide {
     private static final String TAG = "Glide";
     private static volatile Glide glide;
 
-    private final GenericLoaderFactory loaderFactory = new GenericLoaderFactory();
+    private final GenericLoaderFactory loaderFactory;
     private final Engine engine;
     private final BitmapPool bitmapPool;
     private final MemoryCache memoryCache;
@@ -188,8 +189,9 @@ public class Glide {
         this.bitmapPool = bitmapPool;
         this.memoryCache = memoryCache;
         this.decodeFormat = decodeFormat;
+        loaderFactory = new GenericLoaderFactory(context);
         mainHandler = new Handler(Looper.getMainLooper());
-        bitmapPreFiller = new BitmapPreFiller(memoryCache, bitmapPool);
+        bitmapPreFiller = new BitmapPreFiller(memoryCache, bitmapPool, decodeFormat);
 
         dataLoadProviderRegistry = new DataLoadProviderRegistry();
 
@@ -206,7 +208,7 @@ public class Glide {
         dataLoadProviderRegistry.register(ImageVideoWrapper.class, Bitmap.class, imageVideoDataLoadProvider);
 
         GifDrawableLoadProvider gifDrawableLoadProvider =
-                new GifDrawableLoadProvider(context, bitmapPool, decodeFormat);
+                new GifDrawableLoadProvider(context, bitmapPool);
         dataLoadProviderRegistry.register(InputStream.class, GifDrawable.class, gifDrawableLoadProvider);
 
         dataLoadProviderRegistry.register(ImageVideoWrapper.class, GifBitmapWrapper.class,
@@ -333,12 +335,12 @@ public class Glide {
      *     pre-filling only happens when the Activity is first created, rather than on every rotation.
      * </p>
      *
-     * @param bitmapAttributes The list of {@link com.bumptech.glide.load.engine.prefill.PreFillBitmapAttribute}s
-     *                         representing individual sizes and configurations of {@link android.graphics.Bitmap}s to
-     *                         be pre-filled.
+     * @param bitmapAttributeBuilders The list of
+     *     {@link com.bumptech.glide.load.engine.prefill.PreFillType.Builder Builders} representing
+     *     individual sizes and configurations of {@link android.graphics.Bitmap}s to be pre-filled.
      */
-    public void preFillBitmapPool(PreFillBitmapAttribute... bitmapAttributes) {
-        bitmapPreFiller.preFill(bitmapAttributes);
+    public void preFillBitmapPool(PreFillType.Builder... bitmapAttributeBuilders) {
+        bitmapPreFiller.preFill(bitmapAttributeBuilders);
     }
 
     /**
@@ -492,7 +494,7 @@ public class Glide {
             }
             return null;
         }
-        return Glide.get(context).getLoaderFactory().buildModelLoader(modelClass, resourceClass, context);
+        return Glide.get(context).getLoaderFactory().buildModelLoader(modelClass, resourceClass);
     }
 
     /**

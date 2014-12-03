@@ -6,6 +6,8 @@ import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+
+import com.bumptech.glide.GenericRequestBuilder;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.gifdecoder.GifDecoder;
 import com.bumptech.glide.load.Encoder;
@@ -14,6 +16,7 @@ import com.bumptech.glide.load.Transformation;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.resource.NullEncoder;
+import com.bumptech.glide.load.resource.UnitTransformation;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 
@@ -22,73 +25,75 @@ import java.security.MessageDigest;
 import java.util.UUID;
 
 class GifFrameManager {
-    /** 60fps is {@value #MIN_FRAME_DELAY}ms per frame. */
-    private static final long MIN_FRAME_DELAY = 1000 / 60;
-    private final GifFrameModelLoader frameLoader;
-    private final GifFrameResourceDecoder frameResourceDecoder;
     private final GifDecoder decoder;
     private final Handler mainHandler;
-    private final Context context;
-    private final Encoder<GifDecoder> sourceEncoder;
-    private final Transformation<Bitmap>[] transformation;
     private final int targetWidth;
     private final int targetHeight;
     private final FrameSignature signature;
+    private final GenericRequestBuilder<GifDecoder, GifDecoder, Bitmap, Bitmap> requestBuilder;
+    private boolean isLoadInProgress;
     private DelayTarget current;
     private DelayTarget next;
+    private Transformation<Bitmap> transformation = UnitTransformation.get();
 
     public interface FrameCallback {
         void onFrameRead(int index);
     }
 
-    public GifFrameManager(Context context, GifDecoder decoder, Transformation<Bitmap> transformation, int targetWidth,
-            int targetHeight) {
-        this(context, Glide.get(context).getBitmapPool(), decoder, new Handler(Looper.getMainLooper()), transformation,
-                targetWidth, targetHeight);
+    public GifFrameManager(Context context, GifDecoder decoder, int targetWidth, int targetHeight) {
+        this(context, Glide.get(context).getBitmapPool(), decoder, new Handler(Looper.getMainLooper()), targetWidth,
+                targetHeight);
     }
 
-    @SuppressWarnings("unchecked")
     public GifFrameManager(Context context, BitmapPool bitmapPool, GifDecoder decoder, Handler mainHandler,
-            Transformation<Bitmap> transformation, int targetWidth, int targetHeight) {
+                           int targetWidth, int targetHeight) {
+
+        this.decoder = decoder;
+        this.mainHandler = mainHandler;
+        this.targetWidth = targetWidth;
+        this.targetHeight = targetHeight;
+        this.signature = new FrameSignature();
+
+        GifFrameResourceDecoder frameResourceDecoder = new GifFrameResourceDecoder(bitmapPool);
+        GifFrameModelLoader frameLoader = new GifFrameModelLoader();
+        Encoder<GifDecoder> sourceEncoder = NullEncoder.get();
+
+        requestBuilder = Glide.with(context)
+                .using(frameLoader, GifDecoder.class)
+                .from(GifDecoder.class)
+                .as(Bitmap.class)
+                .signature(signature)
+                .sourceEncoder(sourceEncoder)
+                .decoder(frameResourceDecoder)
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.NONE);
+    }
+
+    public void setFrameTransformation(Transformation<Bitmap> transformation) {
         if (transformation == null) {
             throw new NullPointerException("Transformation must not be null");
         }
-
-        this.context = context;
-        this.frameResourceDecoder = new GifFrameResourceDecoder(bitmapPool);
-        this.decoder = decoder;
-        this.mainHandler = mainHandler;
-        this.transformation = new Transformation[] {transformation};
-        this.targetWidth = targetWidth;
-        this.targetHeight = targetHeight;
-        this.frameLoader = new GifFrameModelLoader();
-        this.sourceEncoder = NullEncoder.get();
-        this.signature = new FrameSignature();
+        this.transformation = transformation;
     }
 
-    Transformation<Bitmap> getTransformation() {
-        return transformation[0];
-    }
-
+    @SuppressWarnings("unchecked")
     public void getNextFrame(FrameCallback cb) {
+        if (isLoadInProgress) {
+            return;
+        }
+        isLoadInProgress = true;
+
         decoder.advance();
 
-        long targetTime = SystemClock.uptimeMillis() + Math.max(MIN_FRAME_DELAY, decoder.getNextDelay());
+        long targetTime = SystemClock.uptimeMillis() + decoder.getNextDelay();
         next = new DelayTarget(cb, targetTime);
         next.setFrameIndex(decoder.getCurrentFrameIndex());
 
         // Use an incrementing signature to make sure we never hit an active resource that matches one of our frames.
         signature.increment();
-        Glide.with(context)
-                .using(frameLoader, GifDecoder.class)
+        requestBuilder
                 .load(decoder)
-                .as(Bitmap.class)
-                .signature(signature)
-                .sourceEncoder(sourceEncoder)
-                .decoder(frameResourceDecoder)
                 .transform(transformation)
-                .skipMemoryCache(true)
-                .diskCacheStrategy(DiskCacheStrategy.NONE)
                 .into(next);
     }
 
@@ -97,14 +102,15 @@ class GifFrameManager {
     }
 
     public void clear() {
+        isLoadInProgress = false;
         if (current != null) {
-            mainHandler.removeCallbacks(current);
             Glide.clear(current);
+            mainHandler.removeCallbacks(current);
             current = null;
         }
         if (next != null) {
-            mainHandler.removeCallbacks(next);
             Glide.clear(next);
+            mainHandler.removeCallbacks(next);
             next = null;
         }
 
@@ -135,9 +141,17 @@ class GifFrameManager {
 
         @Override
         public void run() {
+            isLoadInProgress = false;
             cb.onFrameRead(index);
             if (current != null) {
-                Glide.clear(current);
+                // TODO: figure out why this is necessary and fix it. See issue #219.
+                final DelayTarget recycleCurrent = current;
+                mainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.clear(recycleCurrent);
+                    }
+                });
             }
             current = this;
         }

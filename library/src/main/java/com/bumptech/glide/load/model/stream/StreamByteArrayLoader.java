@@ -1,6 +1,7 @@
 package com.bumptech.glide.load.model.stream;
 
 import android.content.Context;
+
 import com.bumptech.glide.load.data.ByteArrayFetcher;
 import com.bumptech.glide.load.data.DataFetcher;
 import com.bumptech.glide.load.model.GenericLoaderFactory;
@@ -22,7 +23,7 @@ public class StreamByteArrayLoader implements StreamModelLoader<byte[]> {
 
     /**
      * @deprecated Use {@link com.bumptech.glide.GenericRequestBuilder#signature(com.bumptech.glide.load.Key)}
-     * and the empty constructor instead.
+     * and the empty constructor instead. Scheduled to be removed in Glide 4.0.
      */
     @Deprecated
     public StreamByteArrayLoader(String id) {

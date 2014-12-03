@@ -1,6 +1,7 @@
 package com.bumptech.glide.load.resource.gifbitmap;
 
 import android.graphics.Bitmap;
+
 import com.bumptech.glide.load.engine.Resource;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
 
@@ -11,6 +12,9 @@ public class GifBitmapWrapperResource implements Resource<GifBitmapWrapper> {
     private final GifBitmapWrapper data;
 
     public GifBitmapWrapperResource(GifBitmapWrapper data) {
+        if (data == null) {
+            throw new NullPointerException("Data must not be null");
+        }
         this.data = data;
     }
 

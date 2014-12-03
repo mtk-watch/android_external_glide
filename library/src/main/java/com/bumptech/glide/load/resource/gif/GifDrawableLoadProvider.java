@@ -2,14 +2,13 @@ package com.bumptech.glide.load.resource.gif;
 
 import android.content.Context;
 
-import com.bumptech.glide.load.DecodeFormat;
-import com.bumptech.glide.provider.DataLoadProvider;
 import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.ResourceDecoder;
 import com.bumptech.glide.load.ResourceEncoder;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.model.StreamEncoder;
 import com.bumptech.glide.load.resource.file.FileToStreamDecoder;
+import com.bumptech.glide.provider.DataLoadProvider;
 
 import java.io.File;
 import java.io.InputStream;
@@ -24,8 +23,8 @@ public class GifDrawableLoadProvider implements DataLoadProvider<InputStream, Gi
     private final StreamEncoder sourceEncoder;
     private final FileToStreamDecoder<GifDrawable> cacheDecoder;
 
-    public GifDrawableLoadProvider(Context context, BitmapPool bitmapPool, DecodeFormat decodeFormat) {
-        decoder = new GifResourceDecoder(context, bitmapPool, decodeFormat);
+    public GifDrawableLoadProvider(Context context, BitmapPool bitmapPool) {
+        decoder = new GifResourceDecoder(context, bitmapPool);
         cacheDecoder = new FileToStreamDecoder<GifDrawable>(decoder);
         encoder = new GifResourceEncoder(bitmapPool);
         sourceEncoder = new StreamEncoder();

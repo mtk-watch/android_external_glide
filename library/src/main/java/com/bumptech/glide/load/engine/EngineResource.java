@@ -1,6 +1,7 @@
 package com.bumptech.glide.load.engine;
 
 import android.os.Looper;
+
 import com.bumptech.glide.load.Key;
 
 /**
@@ -22,6 +23,9 @@ class EngineResource<Z> implements Resource<Z> {
     }
 
     EngineResource(Resource<Z> toWrap, boolean isCacheable) {
+        if (toWrap == null) {
+            throw new NullPointerException("Wrapped resource must not be null");
+        }
         resource = toWrap;
         this.isCacheable = isCacheable;
     }

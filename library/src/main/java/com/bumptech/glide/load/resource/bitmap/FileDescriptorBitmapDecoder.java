@@ -3,11 +3,12 @@ package com.bumptech.glide.load.resource.bitmap;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.ParcelFileDescriptor;
+
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.Resource;
-import com.bumptech.glide.load.ResourceDecoder;
-import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.DecodeFormat;
+import com.bumptech.glide.load.ResourceDecoder;
+import com.bumptech.glide.load.engine.Resource;
+import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 
 import java.io.IOException;
 
@@ -42,11 +43,7 @@ public class FileDescriptorBitmapDecoder implements ResourceDecoder<ParcelFileDe
     @Override
     public Resource<Bitmap> decode(ParcelFileDescriptor source, int width, int height) throws IOException {
         Bitmap bitmap = bitmapDecoder.decode(source, bitmapPool, width, height, decodeFormat);
-        if (bitmap == null) {
-            return null;
-        } else {
-            return new BitmapResource(bitmap, bitmapPool);
-        }
+        return BitmapResource.obtain(bitmap, bitmapPool);
     }
 
     @Override

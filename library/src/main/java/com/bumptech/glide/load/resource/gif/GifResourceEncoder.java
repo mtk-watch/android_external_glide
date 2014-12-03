@@ -2,6 +2,7 @@ package com.bumptech.glide.load.resource.gif;
 
 import android.graphics.Bitmap;
 import android.util.Log;
+
 import com.bumptech.glide.gifdecoder.GifDecoder;
 import com.bumptech.glide.gifdecoder.GifHeader;
 import com.bumptech.glide.gifdecoder.GifHeaderParser;
@@ -110,6 +111,7 @@ public class GifResourceEncoder implements ResourceEncoder<GifDrawable> {
 
     private Resource<Bitmap> getTransformedFrame(Bitmap currentFrame, Transformation<Bitmap> transformation,
             GifDrawable drawable) {
+        // TODO: what if current frame is null?
         Resource<Bitmap> bitmapResource = factory.buildFrameResource(currentFrame, bitmapPool);
         Resource<Bitmap> transformedResource = transformation.transform(bitmapResource,
                 drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());

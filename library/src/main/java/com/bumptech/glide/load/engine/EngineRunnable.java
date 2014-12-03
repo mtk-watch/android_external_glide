@@ -1,6 +1,7 @@
 package com.bumptech.glide.load.engine;
 
 import android.util.Log;
+
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.engine.executor.Prioritized;
 import com.bumptech.glide.request.ResourceCallback;
@@ -63,6 +64,9 @@ class EngineRunnable implements Runnable, Prioritized {
         }
 
         if (isCancelled) {
+            if (resource != null) {
+                resource.recycle();
+            }
             return;
         }
 

@@ -28,7 +28,7 @@ repositories {
 
 dependencies {
     compile 'com.github.bumptech.glide:glide:3.3.+'
-    compile 'com.android.support:support-v4:19.0.0'
+    compile 'com.android.support:support-v4:19.1.0'
 }
 ```
 
@@ -170,6 +170,10 @@ public void onCreate() {
   ...
 }
 ```
+
+Android SDK Version
+-------------------
+Glide requires a minimum sdk version of 10.
 
 License
 -------

@@ -1,16 +1,14 @@
 #!/bin/bash -e
-# Pulls down the latest version of Glide from the master branch, merges it with
-# the existing version of Glide, and removes unneeded tests, source
+# Pulls down the version of Glide specified by tag/branch, merges it with
+# the existing local version of Glide, and removes unneeded tests, source
 # directories, scripts, and build files.
-#
-# Make sure ANDROID_BRANCH_NAME matches the current branch name, then:
 #
 # Usage: ./update_files.sh [glide_brach_name|glide_tag_name|glide_commit]
 #
 # WARNING: This script will rm -rf files in the directory in
 # which it is run!
 
-ANDROID_BRANCH_NAME=ub-camera-haleakala
+ANDROID_BRANCH_NAME=$(repo info . | sed -n 's/Current revision: \(.*\)/\1/p')
 
 # Validate that we were given something to checkout from Glide's remote.
 if [ $# -ne 1 ]
@@ -35,15 +33,18 @@ git fetch bump ${GLIDE_BRANCH} || exit 1
 # submodule.
 rm -rf third_party/disklrucache
 
-# Switch to the branch in Android we want to update and merge.
+# Switch to the branch in Android we want to update, sync and merge.
 git checkout ${ANDROID_BRANCH_NAME}
-git merge bump/master || true
+repo sync .
+# FETCH_HEAD defined by the fetch of the tag/branch above
+git merge FETCH_HEAD || true
 
-# Remove source directories we don't care about.
+# Remove source/build directories we don't care about.
 git rm -rf samples || true
 git rm -rf integration || true
 git rm -rf static || true
 git rm -rf glide || true
+git rm -rf .idea || true
 
 # Remove test directories we don't care about.
 git rm -rf library/src/androidTest || true
@@ -69,11 +70,13 @@ mv $REMOTE_DISK_PATH third_party/disklrucache
 git add third_party/disklrucache
 
 # Remove build/static analysis related files we don't care about.
-find . -name "*gradle*" | xargs git rm -rf
-find . -name "*checkstyle*.xml" | xargs git rm -rf
-find . -name "*pmd*.xml" | xargs git rm -rf
-find . -name "*findbugs*.xml" | xargs git rm -rf
+find . -name "*gradle*" | xargs -r git rm -rf
+find . -name "*checkstyle*.xml" | xargs -r git rm -rf
+find . -name "*pmd*.xml" | xargs -r git rm -rf
+find . -name "*findbugs*.xml" | xargs -r git rm -rf
+find . -name "*.iml" | xargs -r git rm -rf
 
-GIT_SHA=$(git rev-parse bump/master)
-echo "Merged bump/master at ${GIT_SHA}"
+# FETCH_HEAD defined by the fetch of the tag/branch above
+GIT_SHA=$(git rev-parse FETCH_HEAD)
+echo "Merged bump ${GLIDE_BRANCH} at revision ${GIT_SHA}"
 echo "Now fix any merge conflicts, commit, and run: git push goog ${ANDROID_BRANCH_NAME}"

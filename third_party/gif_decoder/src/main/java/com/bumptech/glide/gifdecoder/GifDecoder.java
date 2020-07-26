@@ -631,7 +631,7 @@ public class GifDecoder {
                 }
                 oldCode = inCode;
 
-                while (top > 0) {
+                while (top > 0 && pi < npix) {
                     // Pop a pixel off the pixel stack.
                     top--;
                     mainPixels[pi++] = pixelStack[top];
